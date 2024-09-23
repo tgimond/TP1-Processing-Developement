@@ -8,6 +8,8 @@ import scala.collection.JavaConverters._
 import java.time.Duration
 import java.util
 import java.util.Properties
+import com.sksamuel.avro4s.RecordFormat
+import com.github.polomarcus.models.News
 
 object KafkaConsumerService {
   val logger = Logger(KafkaProducerService.getClass)
@@ -35,10 +37,11 @@ object KafkaConsumerService {
 
   //@TODO we need to connect our consumer to our topic (topicToRead) by **subscribing** it,
   //@TODO solution is here : https://www.oreilly.com/library/view/kafka-the-definitive/9781491936153/ch04.html#idm45788273579960
-  ???
+  consumer.subscribe(topicToRead)
   
   def consume() = {
     try {
+      val newsFormat = RecordFormat[News] // Create a RecordFormat for the News class
       val numberOfLoop = 20
       for (i <- 0 to numberOfLoop)  { // to avoid a while(true) loop
         val messages = consumer.poll(Duration.ofMillis(1000))

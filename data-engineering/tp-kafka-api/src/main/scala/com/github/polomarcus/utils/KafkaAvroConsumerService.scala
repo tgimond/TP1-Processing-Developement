@@ -26,7 +26,8 @@ object KafkaAvroConsumerService {
   props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, kafkaAvroDeserializer)
   props.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ConfService.SCHEMA_REGISTRY)
   props.put(ConsumerConfig.GROUP_ID_CONFIG, ConfService.GROUP_ID)
-  val autoReset = ??? //@TODO @see https://kafka.apache.org/documentation/#consumerconfigs_auto.offset.reset
+  val autoReset = "earliest" //@TODO @see https://kafka.apache.org/documentation/#consumerconfigs_auto.offset.reset
+  //Start reading from the beginning of the topic
   props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoReset)
 
   private val consumer = new KafkaConsumer[String, Record](props)
@@ -47,6 +48,7 @@ object KafkaAvroConsumerService {
 
   def consume(): Unit = {
     try {
+      val newsFormat = RecordFormat[News] // Create a RecordFormat for the News class
       for (i <- 0 to 20) { // to avoid a while(true) loop
         val messages = consumer.poll(Duration.ofMillis(1000))
         val numberOfMessages = messages.count()
@@ -54,7 +56,7 @@ object KafkaAvroConsumerService {
           logger.info(s"Reading $numberOfMessages messages...")
           messages.forEach(record => {
             //@TODO how can we parse the raw data to a News object? @see producer for hints about RecordFormat
-            val deserializedValue = ???
+            val deserializedValue = newsFormat.from(record.value())
             // Deserialized Value [News]: title ${deserializedValue.title } media ${deserializedValue.media }
             logger.info(
               s"""Consumed :
