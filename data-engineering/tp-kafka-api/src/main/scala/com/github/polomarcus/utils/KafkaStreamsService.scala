@@ -26,11 +26,12 @@ object KafkaStreamsService {
     }
 
     val builder: StreamsBuilder = new StreamsBuilder
-    val textLinesStream: KStream[String, String] = builder.stream[String, String](ConfService.TOPIC_OUT)
+    val textLinesStream: KStream[String, String] = builder.stream[String, String]("news2")
 
     //@TODO apply a filter here before counting words
+    val filteredStream: KStream[String, String] = textLinesStream.filter((_, value) => !value.contains("filter"))
 
-    val wordCounts: KTable[String, Long] = textLinesStream
+    val wordCounts: KTable[String, Long] = filteredStream
       .flatMapValues(textLine => { // Stateless
         val transformed = textLine.toLowerCase.split("\\W+")
 
@@ -53,10 +54,12 @@ object KafkaStreamsService {
 
 
     //@TODO join a stream (The join operation is on the keys of the messages) from ConfService.TOPIC_KAFKA_STREAMS_WORD
-
+    val newStream: KStream[String, String] = builder.stream[String, String](ConfService.TOPIC_KAFKA_STREAMS_WORD)
+    val joinedStream: KStream[String, String] = newStream.join(wordCounts)((streamValue, tableValue) => s"($tableValue, $streamValue)")
     //@TODO display the joined stream using a foreach
-    //logger.info(s"Key $key - value after joined $value")
-
+    joinedStream.foreach((key, value) => {
+      logger.info(s"Key $key - value after joined $value")
+    })
 
     val topology = builder.build()
     val streams: KafkaStreams = new KafkaStreams(topology, props)
